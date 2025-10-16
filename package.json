@@ -1,0 +1,14 @@
+{
+  "name": "chat-resend-throttle",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "simulate": "node src/simulate.js",
+    "start": "node src/app.js"
+  },
+  "dependencies": {
+    "p-queue": "^8.0.1",
+    "undici": "^6.19.8"
+  }
+}
