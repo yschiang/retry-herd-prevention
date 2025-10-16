@@ -1,0 +1,60 @@
+🔧 Basic Component Usage Examples
+
+1. Token Bucket Rate Limiter:
+   Sending 5 requests with 3 RPS limit...
+   Request 1 sent at +0ms
+   Request 2 sent at +0ms
+   Request 3 sent at +0ms
+   Request 4 sent at +342ms
+   Request 5 sent at +676ms
+   Notice the controlled spacing!
+
+2. Circuit Breaker:
+   Request 1: Failed (simulated)
+   Request 2: Failed (simulated)
+   Request 3: Failed (simulated)
+   Circuit Breaker: Closed → Open
+   Request 4: Blocked by circuit breaker
+   Request 5: Blocked by circuit breaker
+
+3. Sliding Window Metrics:
+   Metrics: {
+  "requestCount": 5,
+  "errorRate": 0.4,
+  "successRate": 0.6,
+  "p95Latency": 500,
+  "p99Latency": 500,
+  "avgLatency": 210,
+  "medianLatency": 120,
+  "throughput": 5000,
+  "totalCount": 5,
+  "totalSuccess": 3
+}
+
+🔧 Chat Client Integration Example
+
+1. Single message sending:
+   ❌ Failed: fetch failed
+
+2. Batch sending (protected):
+🔴 Chat Client Circuit Breaker: Closed → Open
+[MONITORING] circuit_breaker_state_change: { from: 'Closed', to: 'Open' }
+   📊 Batch complete: 0/20 sent
+   ⏱️  Time taken: 0ms (rate limited to 5 RPS)
+
+3. Health monitoring:
+   📈 Performance: {
+  "requestCount": 3,
+  "errorRate": "100.0%",
+  "avgLatency": "14ms",
+  "p95Latency": "39ms",
+  "throughput": "750.00 req/s"
+}
+   🔴 Circuit Breaker: Open
+
+🎯 Key Benefits Achieved:
+   ✅ No more retry storms during restarts
+   ✅ Automatic backpressure when server struggles
+   ✅ Circuit breaker prevents cascading failures
+   ✅ Real-time monitoring and health checks
+   ✅ Gradual, controlled message sending

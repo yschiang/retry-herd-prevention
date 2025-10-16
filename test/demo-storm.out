@@ -1,0 +1,23 @@
+============================================================
+⚠️  RETRY STORM DEMO (WITHOUT PROTECTION)
+============================================================
+
+Scenario: System restarts and tries to send ALL messages at once!
+
+💥 SENDING ALL 1000 MESSAGES AT ONCE...
+
+============================================================
+💥 STORM RESULTS (WITHOUT THROTTLING):
+============================================================
+❌ Failed: 485 messages (48.5% error rate!)
+✅ Sent: 515 messages
+⏱️  Time: 0.05 seconds
+📈 Burst RPS: 20000 requests/second
+
+⚠️  PROBLEMS CAUSED:
+1. Server overwhelmed - 50% error rate!
+2. Massive burst of 20000 RPS crashed the server
+3. Need to retry 500+ failed messages
+4. Retries will cause ANOTHER storm!
+
+This is why we need throttling! Run demo.js to see the solution.

@@ -1,0 +1,31 @@
+======================================================================
+🚀 PRODUCTION RETRY HERD PREVENTION - LIVE SIMULATION
+======================================================================
+
+📋 Scenario: System restart with 2000 pending messages
+🎯 Goal: Prevent thundering herd while maintaining throughput
+
+📦 Loaded 2000 messages into queue
+
+🚀 Starting simulation... (Press Ctrl+C to stop)
+
+🔥 WARMUP PHASE: Starting at 1 RPS for 15 seconds
+
+✅ WARMUP COMPLETE: Increased to 5 RPS
+
+[STATS] 07:46:28 {"queue_depth":1800,"rps_cap":5,"p95_ms":714,"error_rate":"7.1%","breaker":"Closed","sent_total":39}
+📉 AIMD: Decreased rate 5 → 2 RPS (error=10.0%, p95=694ms)
+[STATS] 07:46:33 {"queue_depth":1800,"rps_cap":2,"p95_ms":694,"error_rate":"10.0%","breaker":"Closed","sent_total":63}
+[STATS] 07:46:38 {"queue_depth":1800,"rps_cap":2,"p95_ms":694,"error_rate":"8.1%","breaker":"Closed","sent_total":79}
+📉 AIMD: Decreased rate 2 → 1 RPS (error=9.1%, p95=694ms)
+[STATS] 07:46:43 {"queue_depth":1800,"rps_cap":1,"p95_ms":694,"error_rate":"9.1%","breaker":"Closed","sent_total":88}
+[STATS] 07:46:48 {"queue_depth":1800,"rps_cap":1,"p95_ms":694,"error_rate":"6.3%","breaker":"Closed","sent_total":93}
+
+📊 Key Takeaways:
+1. No initial burst - warmup prevented overload
+2. Rate adapted automatically based on errors (5→2→1 RPS)
+3. Circuit breaker stayed closed, managing load gracefully
+4. Queue processed steadily without overwhelming server
+5. AIMD controller responded to error rate increases by decreasing throughput
+
+🎯 Result: Controlled, predictable load instead of thundering herd!
