@@ -79,10 +79,11 @@ cat src/simulate.js | less
 // 4. How many messages typically queue up?
 ```
 
-### Step 2: Start Small - Add Rate Limiting Only
+## 🎯 Progressive Implementation Strategy
 
-**Goal**: Add basic protection without changing existing logic
+### Step 2: Minimal MVP - Must-Have Components
 
+#### 🪣 Token Bucket Rate Limiting (Priority 1)
 ```javascript
 // Copy just the rate limiter
 import { TokenBucket } from './lib/TokenBucket.js';
@@ -104,22 +105,111 @@ class ExistingChatClient {
 }
 ```
 
-**Benefits**:
+#### ⏱️ Warmup Period (Priority 2)
+```javascript
+class ExistingChatClient {
+  constructor() {
+    // Start with warmup rate
+    this.rateLimiter = new TokenBucket(1); // 1 RPS warmup
+    
+    // Increase to normal rate after warmup
+    setTimeout(() => {
+      this.rateLimiter.setRate(10); // Normal rate
+      console.log('Warmup complete - increased to 10 RPS');
+    }, 60000); // 60 second warmup
+  }
+}
+```
+
+**Must-Have Benefits**:
 - ✅ Immediate protection against bursts
 - ✅ Zero risk - just adds delay, doesn't change logic
+- ✅ Prevents startup storms with warmup
 - ✅ Easy to test and monitor
 
-### Step 3: Add Metrics Collection
+### Step 3: Enhanced Stability - Should-Have Components
 
-**Goal**: Observe current system behavior
+#### 🎯 Exponential Backoff with Jitter (Priority 3)
+```javascript
+import { TokenBucket, RetryStrategy } from './lib/index.js';
 
+class ExistingChatClient {
+  constructor() {
+    this.rateLimiter = new TokenBucket(10);
+    // ADD: Intelligent retry strategy
+    this.retryStrategy = new RetryStrategy({
+      maxAttempts: 5,
+      baseDelayMs: 1000
+    });
+  }
+  
+  async sendMessage(message) {
+    await this.rateLimiter.take();
+    
+    // ADD: Retry with exponential backoff
+    const result = await this.retryStrategy.execute(async () => {
+      return await this.originalSendLogic(message);
+    });
+    
+    return result;
+  }
+}
+```
+
+#### 🔴 Circuit Breaker (Priority 4)
+```javascript
+import { TokenBucket, CircuitBreaker } from './lib/index.js';
+
+class ExistingChatClient {
+  constructor() {
+    this.rateLimiter = new TokenBucket(10);
+    // ADD: Circuit breaker for safety
+    this.circuitBreaker = new CircuitBreaker({
+      failureThreshold: 5,
+      onStateChange: (from, to) => {
+        console.log(`Circuit breaker: ${from} → ${to}`);
+        // ADD: Alert your monitoring system
+      }
+    });
+  }
+  
+  async sendMessage(message) {
+    // CHECK: Circuit breaker before proceeding
+    if (this.circuitBreaker.shouldBlock()) {
+      throw new Error('Service temporarily unavailable');
+    }
+    
+    await this.rateLimiter.take();
+    
+    try {
+      const result = await this.originalSendLogic(message);
+      this.circuitBreaker.onSuccess(); // NOTIFY: Success
+      return result;
+    } catch (error) {
+      this.circuitBreaker.onFailure(); // NOTIFY: Failure
+      throw error;
+    }
+  }
+}
+```
+
+**Should-Have Benefits**:
+- 🛡️ Protection against cascading failures
+- 🔄 Intelligent retry prevents retry storms
+- 📊 Circuit breaker stops futile attempts
+
+### Step 4: Advanced Automation - Nice-to-Have Components
+
+**Goal**: Self-tuning and optimization
+
+#### 📊 Sliding Window Metrics (Priority 5)
 ```javascript
 import { TokenBucket, SlidingWindow } from './lib/index.js';
 
 class ExistingChatClient {
   constructor() {
     this.rateLimiter = new TokenBucket(10);
-    // ADD: Metrics to understand current performance
+    // ADD: Metrics collection for decision making
     this.metrics = new SlidingWindow({ windowMs: 30000 });
   }
   
@@ -139,74 +229,21 @@ class ExistingChatClient {
     }
   }
   
-  // ADD: Health check endpoint
+  // Health monitoring
   getHealthMetrics() {
     return this.metrics.getMetrics();
   }
 }
 ```
 
-**Benefits**:
-- 📊 Real-time visibility into performance
-- 🎯 Data-driven rate limit tuning
-- 🔍 Baseline before further changes
-
-### Step 4: Add Circuit Breaker (Safety Net)
-
-**Goal**: Protect against cascading failures
-
+#### 🔄 AIMD Adaptive Control (Priority 6)
 ```javascript
-import { TokenBucket, SlidingWindow, CircuitBreaker } from './lib/index.js';
+import { TokenBucket, SlidingWindow, AIMDController } from './lib/index.js';
 
 class ExistingChatClient {
   constructor() {
     this.rateLimiter = new TokenBucket(10);
     this.metrics = new SlidingWindow({ windowMs: 30000 });
-    // ADD: Circuit breaker for safety
-    this.circuitBreaker = new CircuitBreaker({
-      failureThreshold: 5,
-      onStateChange: (from, to) => {
-        console.log(`Circuit breaker: ${from} → ${to}`);
-        // ADD: Alert your monitoring system
-      }
-    });
-  }
-  
-  async sendMessage(message) {
-    // CHECK: Circuit breaker before proceeding
-    if (this.circuitBreaker.shouldBlock()) {
-      throw new Error('Service temporarily unavailable');
-    }
-    
-    await this.rateLimiter.take();
-    
-    const start = Date.now();
-    try {
-      const result = await this.originalSendLogic(message);
-      this.metrics.record(Date.now() - start, true);
-      this.circuitBreaker.onSuccess(); // NOTIFY: Success
-      return result;
-    } catch (error) {
-      this.metrics.record(Date.now() - start, false);
-      this.circuitBreaker.onFailure(); // NOTIFY: Failure
-      throw error;
-    }
-  }
-}
-```
-
-### Step 5: Add Adaptive Rate Control (Advanced)
-
-**Goal**: Self-tuning based on real performance
-
-```javascript
-import { TokenBucket, SlidingWindow, CircuitBreaker, AIMDController } from './lib/index.js';
-
-class ExistingChatClient {
-  constructor() {
-    this.rateLimiter = new TokenBucket(10);
-    this.metrics = new SlidingWindow({ windowMs: 30000 });
-    this.circuitBreaker = new CircuitBreaker({ failureThreshold: 5 });
     // ADD: Self-tuning rate control
     this.aimdController = new AIMDController({
       initialRate: 10,
@@ -231,10 +268,24 @@ class ExistingChatClient {
       );
     }, 30000); // Adjust every 30 seconds
   }
-  
-  // ... rest of sendMessage logic stays the same
 }
 ```
+
+**Nice-to-Have Benefits**:
+- 🤖 Automatic rate optimization
+- 📊 Data-driven decision making
+- 🔄 Self-tuning based on real performance
+
+## Implementation Priority Summary
+
+| Priority | Component | Type | Risk | Impact |
+|----------|-----------|------|------|--------|
+| **1** | 🪣 Token Bucket | Must-Have | Low | High |
+| **2** | ⏱️ Warmup Period | Must-Have | Low | High |
+| **3** | 🎯 Exponential Backoff | Should-Have | Medium | Medium |
+| **4** | 🔴 Circuit Breaker | Should-Have | Medium | High |
+| **5** | 📊 Sliding Window | Nice-to-Have | Low | Medium |
+| **6** | 🔄 AIMD | Nice-to-Have | Medium | Medium |
 
 ## 🧪 Testing Strategy
 

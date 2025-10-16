@@ -2,14 +2,20 @@
 
 ## The Problem: Retry Storms 🌪️
 
-**Problem**: Node.js applications crash/restart and immediately send thousands of queued messages to chat servers, creating "thundering herd" that overwhelms downstream services.
+**Problem**: Node.js applications crash/restart and immediately send thousands of queued messages to servers, creating "thundering herd" that overwhelms downstream services.
 
 **Solution**: Multi-layered throttling with client-side signals only:
-- ⏱️ **Warmup Period**: 60s at 1 RPS prevents initial burst  
-- 🪣 **Token Bucket**: Rate limiting (5 RPS max)
-- 🔄 **AIMD**: Auto-adjust rate based on errors & latency
-- 🔴 **Circuit Breaker**: Stop when service is down
+
+### 🚀 Must-Have (Minimal MVP)
+- 🪣 **Token Bucket**: Rate limiting (5 RPS max) - Core protection
+- ⏱️ **Warmup Period**: 60s at 1 RPS prevents initial burst
+
+### 🔧 Should-Have (Enhanced Stability)  
 - 🎯 **Exponential Backoff**: Intelligent retry with jitter
+- 🔴 **Circuit Breaker**: Stop when service is down
+
+### 🎓 Nice-to-Have (Advanced Automation)
+- 🔄 **AIMD**: Auto-adjust rate based on errors & latency
 - 📊 **Sliding Window**: 30s metrics for decisions
 
 ## Quick Demo
@@ -82,15 +88,81 @@ const jitter = Math.random() * 1000;
 await sleep(backoff + jitter);
 ```
 
+## 🏗️ Technical Architecture Deep Dive
+
+### Multi-Layer Queue System
+
+Our solution implements a **dual-queue architecture** to prevent retry storms:
+
+```
+[5000 Messages] 
+     ↓
+[Batch Fetch: 200 per batch]
+     ↓
+[PQueue: Max 6 concurrent] ← 📋 Concurrency Control Queue
+     ↓
+[TokenBucket.take()] ← ⏰ Rate Limiting Wait Queue  
+     ↓
+[Send to Server]
+```
+
+#### Layer 1: PQueue (Concurrency Control)
+```javascript
+const queue = new PQueue({ concurrency: 6 });
+
+queue.add(async () => {
+  await bucket.take();  // Wait for rate limit
+  await sendMessage();
+});
+```
+
+**Purpose**: 
+- 🎯 Limits simultaneous connections (max 6)
+- 📊 Prevents connection pool exhaustion
+- ⚡ Non-blocking task queuing
+
+#### Layer 2: TokenBucket (Rate Control)
+```javascript
+async take() {
+  while (true) {
+    if (this.tokens >= 1) {
+      this.tokens -= 1;
+      return;
+    }
+    await sleep(10);  // Implicit waiting queue
+  }
+}
+```
+
+**Purpose**:
+- ⏰ Each request waits for available token
+- 📈 Ensures overall RPS never exceeds limit
+- 🔄 All waiting requests form implicit queue
+
+### Queue Behavior Strategies
+
+| Strategy | Our Implementation | Alternative |
+|----------|-------------------|-------------|
+| **Token Bucket** | **Wait Strategy** - Requests wait for tokens | Drop Strategy - Reject when no tokens |
+| **Benefits** | ✅ No message loss<br/>📊 Stable throughput | 💨 Fast response<br/>🚫 No delay accumulation |
+| **Trade-offs** | ⏰ Potential wait time<br/>🔄 Delay accumulation | ❌ Message loss<br/>📈 Needs retry logic |
+
+### Example Flow
+
+With 100 messages to send:
+
+1. **PQueue Stage**: 6 tasks executing, 94 waiting in queue
+2. **TokenBucket Stage**: Each executing task waits for token at 5 RPS
+3. **Result**: Controlled 5 RPS output with max 6 concurrent connections
+
+### Why This Works
+
+- **No Thundering Herd**: Gradual release prevents burst
+- **Resource Protection**: Concurrency limit prevents exhaustion  
+- **Guaranteed Delivery**: Wait strategy ensures no message loss
+- **Adaptive Control**: AIMD adjusts rate based on server health
+
 ## Code Comparison: Monolithic vs Modular
-
-### 📊 Surprising Result: Nearly Same Size!
-
-| Approach | Lines | Description |
-|----------|-------|-------------|
-| **Monolithic** (`src/simulate.js`) | 309 | All-in-one implementation |
-| **Modular** (`simulate-modular.js`) | 320 | Using lib components |
-| **Difference** | **+11** | Only 3.6% more code! |
 
 ### When to Use Which?
 
