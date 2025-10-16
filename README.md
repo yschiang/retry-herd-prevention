@@ -195,122 +195,32 @@ With 100 messages to send:
 ✅ **Prevention > Reaction**: Warmup prevents initial storms
 ✅ **Production Ready**: Can swap fake API with real endpoints
 
-## Team Integration
+## 🧩 Modular Components
 
-### Quick Start: Use Modular Components
+| Component | Priority | Purpose | When to Use |
+|-----------|----------|---------|-------------|
+| **TokenBucket** | Must-Have | Rate limiting (5 RPS max) | Prevent overwhelming downstream services |
+| **Warmup Period** | Must-Have | 60s at 1 RPS prevents initial burst | System restarts and cold starts |
+| **RetryStrategy** | Should-Have | Exponential backoff with jitter | Intelligent retry without storms |
+| **CircuitBreaker** | Should-Have | Stop when service is down | Protect against cascading failures |
+| **SlidingWindow** | Nice-to-Have | 30s metrics for decisions | Track performance metrics |
+| **AIMDController** | Nice-to-Have | Auto-adjust rate based on errors | Self-tuning optimization |
+
+### Quick Integration
 ```javascript
-// Copy individual components you need
+// Basic usage
 import { TokenBucket } from './src/lib/TokenBucket.js';
-import { CircuitBreaker } from './src/lib/CircuitBreaker.js';
-
 const rateLimiter = new TokenBucket(5);
-const breaker = new CircuitBreaker();
+await rateLimiter.take();
+
+// Full stack
+import { TokenBucket, CircuitBreaker, SlidingWindow } from './src/lib/index.js';
 ```
 
-## 🧩 Modular Components Guide
-
-### Available Components
-
-#### 1. TokenBucket.js - Rate Limiting
-```javascript
-import { TokenBucket } from './src/lib/TokenBucket.js';
-
-const limiter = new TokenBucket(5); // 5 requests/second
-await limiter.take(); // Wait for available token
-limiter.setRate(10);  // Adjust rate dynamically
-```
-
-**When to use**: Prevent overwhelming downstream services with too many requests.
-
-#### 2. CircuitBreaker.js - Failure Protection
-```javascript
-import { CircuitBreaker } from './src/lib/CircuitBreaker.js';
-
-const breaker = new CircuitBreaker({ failureThreshold: 10 });
-
-if (!breaker.shouldBlock()) {
-  try {
-    await apiCall();
-    breaker.onSuccess();
-  } catch (error) {
-    breaker.onFailure();
-  }
-}
-```
-
-**When to use**: Stop cascading failures when downstream service is down.
-
-#### 3. AIMDController.js - Adaptive Rate Control
-```javascript
-import { AIMDController } from './src/lib/AIMDController.js';
-
-const controller = new AIMDController({ initialRate: 5 });
-const newRate = controller.update(errorRate, p95Latency);
-rateLimiter.setRate(newRate);
-```
-
-**When to use**: Automatically adjust rate based on server performance.
-
-#### 4. SlidingWindow.js - Metrics Collection
-```javascript
-import { SlidingWindow } from './src/lib/SlidingWindow.js';
-
-const metrics = new SlidingWindow({ windowMs: 30000 });
-metrics.record(latency, success);
-
-const errorRate = metrics.getErrorRate();
-const p95 = metrics.getP95Latency();
-```
-
-**When to use**: Track performance metrics for decision making.
-
-#### 5. RetryStrategy.js - Intelligent Retries
-```javascript
-import { RetryStrategy } from './src/lib/RetryStrategy.js';
-
-const retry = new RetryStrategy({ maxAttempts: 8 });
-const result = await retry.execute(async () => {
-  return await apiCall();
-});
-```
-
-**When to use**: Retry failed requests with exponential backoff and jitter.
-
-### Integration Options
-
-#### Option 1: Use Individual Components
-```javascript
-// Copy just what you need
-import { TokenBucket } from './lib/TokenBucket.js';
-import { CircuitBreaker } from './lib/CircuitBreaker.js';
-```
-
-#### Option 2: Use Complete Package
-```javascript
-// Import everything at once
-import {
-  TokenBucket,
-  CircuitBreaker,
-  AIMDController,
-  SlidingWindow,
-  RetryStrategy
-} from './lib/index.js';
-```
-
-#### Option 3: Copy Individual Files
-Simply copy specific `.js` files from `src/lib/` to your project!
-
-### Full Implementation:
-1. **Study the patterns** in `src/simulate.js` (production code)
-2. **Copy modular components** from `src/lib/` 
-3. **Run demos** with `simulate-demo.js` to understand behavior
-4. **See real integration** with `integration-example.js`
-5. **Follow team guide** in `TEAM-GUIDE.md` for safe adoption
-6. **Configure parameters** for your load:
-   - `MAX_RPS`: Your server's capacity
-   - `CONCURRENCY`: Connection pool size
-   - `BATCH_SIZE`: Database fetch size
-   - `RETRY_MAX`: Maximum retry attempts
+### Getting Started
+1. **Learn**: Run `node demo-storm.js` then `node simulate-demo.js`
+2. **Integrate**: See `integration-example.js` for real examples
+3. **Deploy**: Follow `TEAM-GUIDE.md` for safe step-by-step adoption
 
 ## Monitoring
 
