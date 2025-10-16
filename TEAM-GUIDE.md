@@ -2,7 +2,7 @@
 
 ## 🎯 Learning Path: From Demo to Production
 
-### Phase 1: Understanding the Problem (5 minutes)
+### Step 1: Understanding the Problem
 
 **Goal**: Show team why retry storms happen and their impact
 
@@ -18,7 +18,7 @@ node demo-storm.js
 
 **Key Learning**: Without throttling, system restarts create catastrophic load spikes
 
-### Phase 2: See the Solution (10 minutes)
+### Step 2: See the Solution
 
 **Goal**: Demonstrate how throttling prevents storms
 
@@ -35,7 +35,7 @@ node simulate-demo.js
 
 **Key Learning**: Controlled, adaptive flow prevents cascading failures
 
-### Phase 3: Understanding Components (15 minutes)
+### Step 3: Understanding Components
 
 **Goal**: Learn individual components before integration
 
@@ -51,7 +51,7 @@ node example-usage.js
 4. **SlidingWindow**: Real-time metrics collection
 5. **RetryStrategy**: Intelligent backoff with jitter
 
-### Phase 4: Code Study (20 minutes)
+### Step 4: Code Study
 
 **Goal**: Understand implementation patterns
 
@@ -293,26 +293,6 @@ const metrics = {
 - ✅ **Graceful degradation** during downstream issues
 - ✅ **Automatic recovery** when issues resolve
 
-## 🎓 Team Training Checklist
-
-### For Each Developer:
-- [ ] Run all demos (storm → solution → components)
-- [ ] Read `src/simulate.js` for pattern understanding
-- [ ] Try modifying parameters in `simulate-demo.js`
-- [ ] Implement one component in a test project
-
-### For Team Lead:
-- [ ] Define rollout strategy and success metrics
-- [ ] Set up monitoring for new metrics
-- [ ] Plan gradual integration timeline
-- [ ] Prepare rollback plan
-
-### For DevOps:
-- [ ] Monitor new metrics in dashboards
-- [ ] Set up alerts for circuit breaker state changes
-- [ ] Track rate limit effectiveness
-- [ ] Monitor system resource usage
-
 ## 🚨 Common Pitfalls to Avoid
 
 1. **Don't start with aggressive rates**: Begin conservative (high rate limit)
@@ -320,27 +300,5 @@ const metrics = {
 3. **Don't integrate everything at once**: Gradual rollout is safer
 4. **Don't ignore existing retry logic**: May need to adjust or remove
 5. **Don't forget monitoring**: New components need new alerts
-
-## 🎯 Timeline Recommendation
-
-### Week 1: Learning & Understanding
-- Run demos with team
-- Study code patterns
-- Identify integration points
-
-### Week 2: Component Testing
-- Test individual components in isolation
-- Benchmark against current system
-- Define success metrics
-
-### Week 3: Gradual Integration
-- Start with rate limiting only
-- Monitor metrics closely
-- Tune parameters based on real data
-
-### Week 4: Full Implementation
-- Add remaining components
-- Enable adaptive features
-- Monitor business impact
 
 The key is **progressive enhancement**: start simple, measure results, and gradually add sophistication based on real performance data.
